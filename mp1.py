@@ -1,10 +1,34 @@
 import matplotlib.pyplot as plt
-%matplotlib inline
 import numpy as np
+import matplotlib.patches as patches
+from tqdm import tqdm
+from keras.utils import np_utils
 
 # On some implementations of matplotlib, you may need to change this value
 IMAGE_SIZE = 72
+ 
 
+def plot_history(history):
+    plt.figure(figsize=(20,10))
+    plt.subplot(121)
+    plt.plot(history.history['acc'])
+    plt.plot(history.history['val_acc'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+
+    plt.subplot(122)
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.show()
+    
+    
+    
 def generate_a_drawing(figsize, U, V, noise=0.0):
     fig = plt.figure(figsize=(figsize,figsize))
     ax = plt.subplot(111)
@@ -71,26 +95,14 @@ def generate_a_triangle(noise=0.0, free_location=False):
     imdata = generate_a_drawing(figsize, U, V, noise)
     return [imdata, [U[0], V[0], U[1], V[1], U[2], V[2]]]
 
-
-im = generate_a_rectangle(10, True)
-plt.imshow(im.reshape(IMAGE_SIZE,IMAGE_SIZE), cmap='gray')
-
-im = generate_a_disk(10)
-plt.imshow(im.reshape(IMAGE_SIZE,IMAGE_SIZE), cmap='gray')
-
-[im, v] = generate_a_triangle(20, False)
-plt.imshow(im.reshape(IMAGE_SIZE,IMAGE_SIZE), cmap='gray')
-
-
+ 
 def generate_dataset_classification(nb_samples, noise=0.0, free_location=False):
     # Getting im_size:
     im_size = generate_a_rectangle().shape[0]
     X = np.zeros([nb_samples,im_size])
     Y = np.zeros(nb_samples)
-    print('Creating data:')
-    for i in range(nb_samples):
-        if i % 10 == 0:
-            print(i)
+    
+    for i in tqdm(range(nb_samples), "Creating data: "):
         category = np.random.randint(3)
         if category == 0:
             X[i] = generate_a_rectangle(noise, free_location)
@@ -100,28 +112,24 @@ def generate_dataset_classification(nb_samples, noise=0.0, free_location=False):
             [X[i], V] = generate_a_triangle(noise, free_location)
         Y[i] = category
     X = (X + noise) / (255 + 2 * noise)
+    Y = np_utils.to_categorical(Y, 3)
     return [X, Y]
 
-def generate_test_set_classification():
+def generate_test_set_classification(nb_samples, noise=0.0, free_location=False):
     np.random.seed(42)
-    [X_test, Y_test] = generate_dataset_classification(300, 20, True)
-    Y_test = np_utils.to_categorical(Y_test, 3) 
-    return [X_test, Y_test]
+    return generate_dataset_classification(nb_samples, noise, free_location)
 
 def generate_dataset_regression(nb_samples, noise=0.0):
     # Getting im_size:
     im_size = generate_a_triangle()[0].shape[0]
     X = np.zeros([nb_samples,im_size])
     Y = np.zeros([nb_samples, 6])
-    print('Creating data:')
-    for i in range(nb_samples):
-        if i % 10 == 0:
-            print(i)
+    
+    for i in tqdm(range(nb_samples), "Creating data: "):
         [X[i], Y[i]] = generate_a_triangle(noise, True)
     X = (X + noise) / (255 + 2 * noise)
     return [X, Y]
 
-import matplotlib.patches as patches
 
 def visualize_prediction(x, y):
     fig, ax = plt.subplots(figsize=(5, 5))
