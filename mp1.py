@@ -9,16 +9,17 @@ IMAGE_SIZE = 72
  
 
 def plot_history(history):
-    plt.figure(figsize=(20,10))
-    plt.subplot(121)
-    plt.plot(history.history['acc'])
-    plt.plot(history.history['val_acc'])
-    plt.title('model accuracy')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
+    if 'acc' in history.history:
+        plt.figure(figsize=(20,10))
+        plt.subplot(121)
+        plt.plot(history.history['acc'])
+        plt.plot(history.history['val_acc'])
+        plt.title('model accuracy')
+        plt.ylabel('accuracy')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'test'], loc='upper left')
 
-    plt.subplot(122)
+        plt.subplot(122)
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
     plt.title('model loss')
@@ -95,6 +96,19 @@ def generate_a_triangle(noise=0.0, free_location=False):
     imdata = generate_a_drawing(figsize, U, V, noise)
     return [imdata, [U[0], V[0], U[1], V[1], U[2], V[2]]]
 
+def generate_a_triangles(noise=0.0, free_location=False):
+    figsize = 1.0
+    if free_location:
+        U = np.random.random(3)
+        V = np.random.random(3)
+    else:
+        size = (0.3 + 0.7 * np.random.random())*figsize/2
+        middle = figsize/2
+        U = (middle, middle+size, middle-size)
+        V = (middle+size, middle-size, middle-size)
+    imdata = generate_a_drawing(figsize, U, V, noise)
+    return [imdata, [U[0], V[0], U[1], V[1], U[2], V[2]]]
+
  
 def generate_dataset_classification(nb_samples, noise=0.0, free_location=False):
     # Getting im_size:
@@ -119,20 +133,21 @@ def generate_test_set_classification(nb_samples, noise=0.0, free_location=False)
     np.random.seed(42)
     return generate_dataset_classification(nb_samples, noise, free_location)
 
-def generate_dataset_regression(nb_samples, noise=0.0):
+def generate_dataset_regression(nb_samples, noise=0.0, free_location=False):
     # Getting im_size:
     im_size = generate_a_triangle()[0].shape[0]
     X = np.zeros([nb_samples,im_size])
     Y = np.zeros([nb_samples, 6])
     
     for i in tqdm(range(nb_samples), "Creating data: "):
-        [X[i], Y[i]] = generate_a_triangle(noise, True)
+        [X[i], Y[i]] = generate_a_triangle(noise, free_location)
     X = (X + noise) / (255 + 2 * noise)
     return [X, Y]
 
 
-def visualize_prediction(x, y):
-    fig, ax = plt.subplots(figsize=(5, 5))
+def visualize_prediction(x, y, show=True, fig=None):
+    if fig is None:
+        fig, ax = plt.subplots(figsize=(5, 5))
     I = x.reshape((IMAGE_SIZE,IMAGE_SIZE))
     ax.imshow(I, extent=[-0.15,1.15,-0.15,1.15],cmap='gray')
     ax.set_xlim([0,1])
@@ -143,10 +158,48 @@ def visualize_prediction(x, y):
     ax.add_patch(tri)
 
     plt.show()
+    
+def visualize_predictions(X, Y, ground_truth=None):
+    fig, ax = plt.subplots(figsize=(20, 10))
+    n_samples = len(X)
+    for i in range(n_samples):
+        ax = plt.subplot(1,n_samples, i+1)
+        I = X[i].reshape((IMAGE_SIZE,IMAGE_SIZE))
+        ax.imshow(I, extent=[-0.15,1.15,-0.15,1.15],cmap='gray')
+        ax.set_xlim([0,1])
+        ax.set_ylim([0,1])
+        xy = Y[i].reshape(3,2)
+        tri = patches.Polygon(xy, closed=True, fill = False, edgecolor = 'r', linewidth = 5, alpha = 0.5)
+        ax.add_patch(tri)
+        
+        if ground_truth is not None:
+            xy = ground_truth[i].reshape(3,2)
+            tri = patches.Polygon(xy, closed=True, fill = False, edgecolor = 'g', linewidth = 5, alpha = 0.5)
+            ax.add_patch(tri)
 
-def generate_test_set_regression():
+    plt.show()
+    
+    
+def visualize_pred_gt(x, y, y_pred):
+    fig, ax = plt.subplots(figsize=(5, 5))
+    I = x.reshape((IMAGE_SIZE,IMAGE_SIZE))
+    ax.imshow(I, extent=[-0.15,1.15,-0.15,1.15],cmap='gray')
+    ax.set_xlim([0,1])
+    ax.set_ylim([0,1])
+
+    xy = y.reshape(3,2)
+    tri = patches.Polygon(xy, closed=True, fill = False, edgecolor = 'g', linewidth = 5, alpha = 0.5)
+    ax.add_patch(tri)
+    xy = y_pred.reshape(3,2)
+    tri = patches.Polygon(xy, closed=True, fill = False, edgecolor = 'r', linewidth = 5, alpha = 0.5)
+    ax.add_patch(tri)
+
+    plt.show()
+
+    
+def generate_test_set_regression(nb_samples, noise=0.0, free_location=False):
     np.random.seed(42)
-    [X_test, Y_test] = generate_dataset_regression(300, 20)
+    [X_test, Y_test] = generate_dataset_regression(nb_samples, noise, free_location)
     return [X_test, Y_test]
 
 
